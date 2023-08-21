@@ -1,49 +1,44 @@
 from typing import Type
 
-from fast_acl import models
+from fast_acl.acl.role import UserRoles
 from fast_acl.db import Database
-from fast_acl.exception import NotFoundError
-from fast_acl.repository import StudentRepository
+from fast_acl.repository import (
+    ClassroomRepository,
+    StudentRepository,
+    StudentUpdateInfo,
+    UserRepository,
+)
 from fast_acl.types import ClassRoomId, StudentId
 
 
 class StudentController:
-    repo = StudentRepository()
+    def __init__(self, database: Type[Database]):
+        self.student_repo = StudentRepository(database)
+        self.user_repo = UserRepository(database)
+        self.classroom_repo = ClassroomRepository(database)
 
-    def get_student(
-        self,
-        db: Type[Database],
-        classroom_id: None | ClassRoomId = None,
-        student_id: StudentId | None = None,
-    ) -> models.Student:
-        if classroom_id:
-            ...
-        elif student_id:
-            ...
-        else:
-            raise NotFoundError(...)
+    def get_student(self, student_id: StudentId):
+        student = self.student_repo.get_student_by_student_id(student_id=student_id)
+        return student
 
-    def get_all_students_from_school(self, db: Type[Database]) -> list[models.Student]:
-        ...
-
-    def add_student_to_classroom(
-        self, db: Type[Database], student: models.Student, classroom_id: ClassRoomId
+    def add_student(
+        self, username: str, password: str, classroom_id: ClassRoomId
     ) -> None:
-        try:
-            student = self.get_student()
-        except NotFoundError:
-            student = None
+        user = self.user_repo.create_user(
+            username, password=password, role=UserRoles.STUDENT
+        )
+        classroom = self.classroom_repo.get_classroom(classroom_id)
+        self.student_repo.create_student(
+            grade=None, classroom_id=classroom.id, user_id=user.id
+        )
 
-        if student is None:
-            student = self.repo.create_student()
+    def update_student_grade(self, student_id: StudentId, grade: int) -> None:
+        self.student_repo.update_student(
+            student_id=student_id, student_data=StudentUpdateInfo(grade=grade)
+        )
 
-        self.repo.add_student_to_classroom(student)
-        return None
-
-    def update_student_grade(
-        self, db: Type[Database], student_id: StudentId, grade: int
-    ) -> None:
+    def delete_student(self, student_id: StudentId) -> None:
         ...
 
-    def delete_student(self, db: Type[Database], student_id: StudentId) -> None:
-        ...
+    def expel_student(self, student_id: StudentId) -> None:
+        self.student_repo.expel_student(student_id=student_id)

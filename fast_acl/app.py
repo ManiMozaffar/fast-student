@@ -1,7 +1,9 @@
-from typing import Callable
+from contextlib import asynccontextmanager
+from typing import Callable, Type
 
 import uvicorn
-from fastapi import Depends, FastAPI
+from fastapi import Body, Depends, FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 from fast_acl.acl.mapper import (
     PermissionGrants,
@@ -11,9 +13,34 @@ from fast_acl.acl.mapper import (
 )
 from fast_acl.acl.routes import RoutesEnum
 from fast_acl.auth import TokenData, check_auth, create_access_token
-from fast_acl.schema import ProtectedMessage, Token
+from fast_acl.controller import StudentController
+from fast_acl.db import Database
+from fast_acl.exception import NotFoundError
+from fast_acl.sample_data import add_sample_data
+from fast_acl.schema import ProtectedMessage, StudetnInput, Token
+from fast_acl.types import ClassRoomId, StudentId
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    add_sample_data()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+def get_database():
+    return Database
+    # return Database
+
+
+@app.exception_handler(NotFoundError)
+async def unicorn_exception_handler(_: Request, exc: NotFoundError):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"message": f"Object with id {exc.obj_id} was nout found"},
+    )
 
 
 @app.post("/token", response_model=Token)
@@ -31,9 +58,35 @@ async def read_protected_route():
     return ProtectedMessage(message="You have access to this protected route!")
 
 
-@app.post("classroom/{classroom_id}/student")
+@app.post("/classroom/{classroom_id}/student")
 async def create_student(
+    classroom_id: ClassRoomId,
     token: TokenData = Depends(check_auth),
+    database: Type[Database] = Depends(get_database),
+    permission_callable: Callable = Depends(get_permission_callable),
+    permission_setting: dict[RoutesEnum, dict[UserRoles, PermissionGrants]] = Depends(
+        get_permission_setting
+    ),
+    body: StudetnInput = Body(),
+):
+    await permission_callable(
+        user_rule=token.role,
+        user_id=token.user_id,
+        route=RoutesEnum.ADD_STUDENT,
+        permission_setting=permission_setting,
+        classroom_id=classroom_id,
+    )
+    StudentController(database).add_student(
+        **body.model_dump(), classroom_id=classroom_id
+    )
+
+
+@app.get("/classroom/{classroom_id}/student/{student_id}")
+async def get_student(
+    classroom_id: ClassRoomId,
+    student_id: StudentId,
+    token: TokenData = Depends(check_auth),
+    database: Type[Database] = Depends(get_database),
     permission_callable: Callable = Depends(get_permission_callable),
     permission_setting: dict[RoutesEnum, dict[UserRoles, PermissionGrants]] = Depends(
         get_permission_setting
@@ -42,37 +95,73 @@ async def create_student(
     await permission_callable(
         user_rule=token.role,
         user_id=token.user_id,
-        route=RoutesEnum.ADD_STUDENT,
+        route=RoutesEnum.READ_STUDENT,
         permission_setting=permission_setting,
+        classroom_id=classroom_id,
+    )
+    StudentController(database).get_student(student_id)
+
+
+@app.put("/classroom/{classroom_id}/student/{student_id}")
+async def update_student(
+    classroom_id: ClassRoomId,
+    student_id: StudentId,
+    token: TokenData = Depends(check_auth),
+    database: Type[Database] = Depends(get_database),
+    permission_callable: Callable = Depends(get_permission_callable),
+    permission_setting: dict[RoutesEnum, dict[UserRoles, PermissionGrants]] = Depends(
+        get_permission_setting
+    ),
+):
+    await permission_callable(
+        user_rule=token.role,
+        user_id=token.user_id,
+        route=RoutesEnum.UPDATE_STUDENT,
+        permission_setting=permission_setting,
+        classroom_id=classroom_id,
+    )
+    StudentController(database).update_student_grade(student_id, grade=10)
+
+
+@app.delete("/classroom/{classroom_id}/student/{student_id}")
+async def delete_student(
+    classroom_id: ClassRoomId,
+    student_id: StudentId,
+    token: TokenData = Depends(check_auth),
+    database: Type[Database] = Depends(get_database),
+    permission_callable: Callable = Depends(get_permission_callable),
+    permission_setting: dict[RoutesEnum, dict[UserRoles, PermissionGrants]] = Depends(
+        get_permission_setting
+    ),
+):
+    await permission_callable(
+        user_rule=token.role,
+        user_id=token.user_id,
+        route=RoutesEnum.DELETE_STUDENT,
+        permission_setting=permission_setting,
+        classroom_id=classroom_id,
     )
 
 
-@app.get("classroom/{classroom_id}/student/{student_id}")
-async def get_student(
-    permission_callable: Callable = Depends(get_permission_callable),
-):
-    route_enum = RoutesEnum.READ_STUDENT
-
-
-@app.put("classroom/{classroom_id}/student/{student_id}")
-async def update_student(
-    permission_callable: Callable = Depends(get_permission_callable),
-):
-    route_enum = RoutesEnum.UPDATE_STUDENT
-
-
-@app.delete("classroom/{classroom_id}/student/{student_id}")
-async def delete_student(
-    permission_callable: Callable = Depends(get_permission_callable),
-):
-    route_enum = RoutesEnum.DELETE_STUDENT
-
-
-@app.patch("classroom/{classroom_id}/student/{student_id}")
+@app.patch("/classroom/{classroom_id}/student/{student_id}")
 async def expel_student(
+    classroom_id: ClassRoomId,
+    student_id: StudentId,
+    token: TokenData = Depends(check_auth),
+    database: Type[Database] = Depends(get_database),
     permission_callable: Callable = Depends(get_permission_callable),
+    permission_setting: dict[RoutesEnum, dict[UserRoles, PermissionGrants]] = Depends(
+        get_permission_setting
+    ),
 ):
-    route_enum = RoutesEnum.EXPEL_STUDENT
+    await permission_callable(
+        user_rule=token.role,
+        user_id=token.user_id,
+        route=RoutesEnum.EXPEL_STUDENT,
+        permission_setting=permission_setting,
+        classroom_id=classroom_id,
+    )
+    StudentController(database).expel_student(student_id)
 
 
 if __name__ == "__main__":
