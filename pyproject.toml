@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "fast-acl"
+version = "0.1.0"
+description = ""
+authors = ["ManiMozaffar <mani.mozaffar@gmail.com>"]
+readme = "README.md"
+packages = [{include = "fast_acl"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-jose = "^3.3.0"
+fastapi = "^0.101.0"
+uvicorn = "^0.23.2"
+pydantic-settings = "^2.0.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
