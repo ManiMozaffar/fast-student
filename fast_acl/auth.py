@@ -15,8 +15,12 @@ http_bearer = HTTPBearer()
 
 
 def create_access_token(data: TokenData) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=setting.ACCESS_TOKEN_EXPIRE_MINUTES)
-    token_data = TokenSchema(user_id=data.user_id, role=data.role, exp=expire)
+    expire_timestamp = int(
+        (
+            datetime.now() + timedelta(minutes=setting.ACCESS_TOKEN_EXPIRE_MINUTES)
+        ).timestamp()
+    )
+    token_data = TokenSchema(user_id=data.user_id, role=data.role, exp=expire_timestamp)
     encoded_jwt = jwt.encode(
         json.loads(token_data.model_dump_json()),
         setting.SECRET_KEY,
