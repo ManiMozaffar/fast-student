@@ -2,30 +2,34 @@ from typing import Type
 
 from fast_acl.db import Database
 from fast_acl.exception import NotAuthorizedError
-from fast_acl.repository import StudentRepository
-from fast_acl.types import ClassRoomId
+from fast_acl.repository import ClassroomRepository
+from fast_acl.types import ClassRoomId, UserId
 
 
 async def is_allowed(**_):
     return True
 
 
-async def is_not_allowed(asked_id, **_):
-    raise NotAuthorizedError(asked_id)
+async def is_not_allowed(**_):
+    raise NotAuthorizedError
 
 
 async def related_classroom(
-    database: Type[Database], asked_id, ask_for_id: ClassRoomId, **_
+    database: Type[Database],
+    asked_id: UserId,
+    ask_for_id: UserId,
+    classroom_id: ClassRoomId,
+    **_
 ):
-    for relation in database.relations:
-        if relation.classroom_id == ask_for_id:
-            repo = StudentRepository()
-            classroom = repo.get_classroom(database, ask_for_id)
-            relation = repo.get_relation(database, classroom.id, asked_id)
-            if relation.teacher_id == asked_id:
-                return True
+    repo = ClassroomRepository(database)
+    relations = repo.filter_classroom_relations(classroom_id)
+    for relation in relations:
+        is_classroom_teacher = relation.teacher_id == asked_id
+        if is_classroom_teacher:
+            return True
 
-            if relation.student_id == asked_id and asked_id == ask_for_id:
-                return True
+        is_self_student = relation.student_id == asked_id and asked_id == ask_for_id
+        if is_self_student:
+            return True
 
-    raise NotAuthorizedError(asked_id)
+    raise NotAuthorizedError

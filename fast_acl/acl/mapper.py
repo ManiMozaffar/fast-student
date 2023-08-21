@@ -4,41 +4,37 @@ from .grants import GRANT_MAPPER, PermissionGrants
 from .role import UserRoles
 from .routes import RoutesEnum
 
-ACL_MAPPER: dict[RoutesEnum, dict[UserRoles, PermissionGrants]] = {
-    RoutesEnum.ADD_STUDENT: {
-        UserRoles.ADMIN: PermissionGrants.IS_ALLOWED,
-        UserRoles.ADVISOR: PermissionGrants.NOT_ALLOWED,
-        UserRoles.STUDENT: PermissionGrants.NOT_ALLOWED,
-        UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
-    },
-    RoutesEnum.DELETE_STUDENT: {
-        UserRoles.ADMIN: PermissionGrants.IS_ALLOWED,
-        UserRoles.ADVISOR: PermissionGrants.NOT_ALLOWED,
-        UserRoles.STUDENT: PermissionGrants.NOT_ALLOWED,
-        UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
-    },
-    RoutesEnum.EXPEL_STUDENT: {
-        UserRoles.ADMIN: PermissionGrants.IS_ALLOWED,
-        UserRoles.ADVISOR: PermissionGrants.NOT_ALLOWED,
-        UserRoles.STUDENT: PermissionGrants.NOT_ALLOWED,
-        UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
-    },
-    RoutesEnum.UPDATE_STUDENT: {
-        UserRoles.ADMIN: PermissionGrants.IS_ALLOWED,
-        UserRoles.ADVISOR: PermissionGrants.NOT_ALLOWED,
-        UserRoles.STUDENT: PermissionGrants.NOT_ALLOWED,
-        UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
-    },
-    RoutesEnum.READ_STUDENT: {
-        UserRoles.ADMIN: PermissionGrants.IS_ALLOWED,
-        UserRoles.ADVISOR: PermissionGrants.IS_ALLOWED,
-        UserRoles.STUDENT: PermissionGrants.RELATED_CLASSROOM,
-        UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
-    },
-}
-
 
 def get_permission_setting():
+    ACL_MAPPER: dict[RoutesEnum, dict[UserRoles, PermissionGrants]] = {
+        RoutesEnum.ADD_STUDENT: {
+            UserRoles.ADVISOR: PermissionGrants.NOT_ALLOWED,
+            UserRoles.STUDENT: PermissionGrants.NOT_ALLOWED,
+            UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
+        },
+        RoutesEnum.DELETE_STUDENT: {
+            UserRoles.ADVISOR: PermissionGrants.NOT_ALLOWED,
+            UserRoles.STUDENT: PermissionGrants.NOT_ALLOWED,
+            UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
+        },
+        RoutesEnum.EXPEL_STUDENT: {
+            UserRoles.ADVISOR: PermissionGrants.NOT_ALLOWED,
+            UserRoles.STUDENT: PermissionGrants.NOT_ALLOWED,
+            UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
+        },
+        RoutesEnum.UPDATE_STUDENT: {
+            UserRoles.ADVISOR: PermissionGrants.NOT_ALLOWED,
+            UserRoles.STUDENT: PermissionGrants.NOT_ALLOWED,
+            UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
+        },
+        RoutesEnum.READ_STUDENT: {
+            UserRoles.ADVISOR: PermissionGrants.IS_ALLOWED,
+            UserRoles.STUDENT: PermissionGrants.RELATED_CLASSROOM,
+            UserRoles.TEACHER: PermissionGrants.RELATED_CLASSROOM,
+        },
+    }
+    for router in ACL_MAPPER:
+        ACL_MAPPER[router][UserRoles.ADMIN] = PermissionGrants.IS_ALLOWED
     return ACL_MAPPER
 
 
