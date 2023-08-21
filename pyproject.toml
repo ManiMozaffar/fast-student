@@ -12,6 +12,8 @@ python-jose = "^3.3.0"
 fastapi = "^0.101.0"
 uvicorn = "^0.23.2"
 pydantic-settings = "^2.0.3"
+faker = "^19.3.0"
+rich = "^13.5.2"
 
 
 [build-system]
