@@ -16,8 +16,15 @@ from fast_acl.auth import TokenData, check_auth, create_access_token
 from fast_acl.controller import StudentController
 from fast_acl.db import Database
 from fast_acl.exception import NotFoundError
+from fast_acl.models import Student
 from fast_acl.sample_data import add_sample_data
-from fast_acl.schema import ProtectedMessage, StudetnInput, Token
+from fast_acl.schema import (
+    ProtectedMessage,
+    StudentUpdateInput,
+    StudetnCreationOutput,
+    StudetnInput,
+    Token,
+)
 from fast_acl.settings import ProductEnvironment, setting
 from fast_acl.types import ClassRoomId, StudentId
 
@@ -35,7 +42,6 @@ app = FastAPI(lifespan=lifespan)
 
 def get_database():
     return Database
-    # return Database
 
 
 router = APIRouter()
@@ -64,7 +70,7 @@ async def read_protected_route():
     return ProtectedMessage(message="You have access to this protected route!")
 
 
-@router.post("/classroom/{classroom_id}/student")
+@router.post("/classroom/{classroom_id}/student", response_model=StudetnCreationOutput)
 async def create_student(
     classroom_id: ClassRoomId,
     token: TokenData = Depends(check_auth),
@@ -82,12 +88,13 @@ async def create_student(
         permission_setting=permission_setting,
         classroom_id=classroom_id,
     )
-    StudentController(database).add_student(
+    student = StudentController(database).add_student(
         **body.model_dump(), classroom_id=classroom_id
     )
+    return StudetnCreationOutput(student_id=student)
 
 
-@router.get("/classroom/{classroom_id}/student/{student_id}")
+@router.get("/classroom/{classroom_id}/student/{student_id}", response_model=Student)
 async def get_student(
     classroom_id: ClassRoomId,
     student_id: StudentId,
@@ -105,7 +112,7 @@ async def get_student(
         permission_setting=permission_setting,
         classroom_id=classroom_id,
     )
-    StudentController(database).get_student(student_id)
+    return StudentController(database).get_student(student_id)
 
 
 @router.put("/classroom/{classroom_id}/student/{student_id}")
@@ -113,6 +120,7 @@ async def update_student(
     classroom_id: ClassRoomId,
     student_id: StudentId,
     token: TokenData = Depends(check_auth),
+    body: StudentUpdateInput = Body(),
     database: Type[Database] = Depends(get_database),
     permission_callable: Callable = Depends(get_permission_callable),
     permission_setting: dict[RoutesEnum, dict[UserRoles, PermissionGrants]] = Depends(
@@ -126,7 +134,7 @@ async def update_student(
         permission_setting=permission_setting,
         classroom_id=classroom_id,
     )
-    StudentController(database).update_student_grade(student_id, grade=10)
+    StudentController(database).update_student_grade(student_id, grade=body.grade)
 
 
 @router.delete("/classroom/{classroom_id}/student/{student_id}")

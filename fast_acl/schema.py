@@ -1,7 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from fast_acl.acl.role import UserRoles
-from fast_acl.types import UserId
+from fast_acl.types import StudentId, UserId
 
 
 class TokenSchema(BaseModel):
@@ -26,3 +26,11 @@ class ProtectedMessage(BaseModel):
 class StudetnInput(BaseModel):
     username: str
     password: str
+
+
+class StudetnCreationOutput(BaseModel):
+    student_id: StudentId
+
+
+class StudentUpdateInput(BaseModel):
+    grade: int = Field(gt=0, lt=101)
