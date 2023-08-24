@@ -40,6 +40,7 @@ class StudentController:
         )
 
     def delete_student(self, student_id: StudentId) -> None:
+        # TODO: Finish this endpoint by yourself as practice!
         ...
 
     def expel_student(self, student_id: StudentId) -> None:

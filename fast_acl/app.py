@@ -1,3 +1,5 @@
+# This file shall be designed better, in real world scenario
+
 from contextlib import asynccontextmanager
 from typing import Callable, Type
 
@@ -57,6 +59,7 @@ async def unicorn_exception_handler(_: Request, exc: NotFoundError):
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(payload: TokenData):
+    """Is a mock API for login, shall be replaced with login in real-world scenario"""
     access_token = create_access_token(data=payload)
     return {"access_token": access_token}
 
@@ -148,6 +151,7 @@ async def delete_student(
         get_permission_setting
     ),
 ):
+    # TODO: Finish this endpoint by yourself as practice!
     await permission_callable(
         user_rule=token.role,
         user_id=token.user_id,
