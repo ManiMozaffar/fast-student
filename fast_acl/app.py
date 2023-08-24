@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from typing import Callable, Type
 
 import uvicorn
-from fastapi import Body, Depends, FastAPI, Request, status
+from fastapi import APIRouter, Body, Depends, FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from fast_acl.acl.mapper import (
@@ -18,12 +18,15 @@ from fast_acl.db import Database
 from fast_acl.exception import NotFoundError
 from fast_acl.sample_data import add_sample_data
 from fast_acl.schema import ProtectedMessage, StudetnInput, Token
+from fast_acl.settings import ProductEnvironment, setting
 from fast_acl.types import ClassRoomId, StudentId
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    add_sample_data()
+    # TODO: This should be a script, not a lifespan. for sake of simplicity, we did this!
+    if setting.ENV != ProductEnvironment.PRODUCTION:
+        add_sample_data()
     yield
 
 
@@ -35,6 +38,9 @@ def get_database():
     # return Database
 
 
+router = APIRouter()
+
+
 @app.exception_handler(NotFoundError)
 async def unicorn_exception_handler(_: Request, exc: NotFoundError):
     return JSONResponse(
@@ -43,13 +49,13 @@ async def unicorn_exception_handler(_: Request, exc: NotFoundError):
     )
 
 
-@app.post("/token", response_model=Token)
+@router.post("/token", response_model=Token)
 async def login_for_access_token(payload: TokenData):
     access_token = create_access_token(data=payload)
     return {"access_token": access_token}
 
 
-@app.get(
+@router.get(
     "/protected-route",
     dependencies=[Depends(check_auth)],
     response_model=ProtectedMessage,
@@ -58,7 +64,7 @@ async def read_protected_route():
     return ProtectedMessage(message="You have access to this protected route!")
 
 
-@app.post("/classroom/{classroom_id}/student")
+@router.post("/classroom/{classroom_id}/student")
 async def create_student(
     classroom_id: ClassRoomId,
     token: TokenData = Depends(check_auth),
@@ -81,7 +87,7 @@ async def create_student(
     )
 
 
-@app.get("/classroom/{classroom_id}/student/{student_id}")
+@router.get("/classroom/{classroom_id}/student/{student_id}")
 async def get_student(
     classroom_id: ClassRoomId,
     student_id: StudentId,
@@ -102,7 +108,7 @@ async def get_student(
     StudentController(database).get_student(student_id)
 
 
-@app.put("/classroom/{classroom_id}/student/{student_id}")
+@router.put("/classroom/{classroom_id}/student/{student_id}")
 async def update_student(
     classroom_id: ClassRoomId,
     student_id: StudentId,
@@ -123,7 +129,7 @@ async def update_student(
     StudentController(database).update_student_grade(student_id, grade=10)
 
 
-@app.delete("/classroom/{classroom_id}/student/{student_id}")
+@router.delete("/classroom/{classroom_id}/student/{student_id}")
 async def delete_student(
     classroom_id: ClassRoomId,
     student_id: StudentId,
@@ -143,7 +149,7 @@ async def delete_student(
     )
 
 
-@app.patch("/classroom/{classroom_id}/student/{student_id}")
+@router.patch("/classroom/{classroom_id}/student/{student_id}")
 async def expel_student(
     classroom_id: ClassRoomId,
     student_id: StudentId,
@@ -162,6 +168,9 @@ async def expel_student(
         classroom_id=classroom_id,
     )
     StudentController(database).expel_student(student_id)
+
+
+app.include_router(router, prefix=f"/v{setting.VERSION}")
 
 
 if __name__ == "__main__":

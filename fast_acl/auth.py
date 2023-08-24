@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timedelta
 
 from fastapi import Depends
@@ -10,6 +9,7 @@ from fast_acl.exception import CredentialsException
 from fast_acl.schema import TokenData, TokenSchema
 from fast_acl.settings import setting
 from fast_acl.types import UserId
+from fast_acl.utils import pydantic_to_dict
 
 http_bearer = HTTPBearer()
 
@@ -22,7 +22,7 @@ def create_access_token(data: TokenData) -> str:
     )
     token_data = TokenSchema(user_id=data.user_id, role=data.role, exp=expire_timestamp)
     encoded_jwt = jwt.encode(
-        json.loads(token_data.model_dump_json()),
+        pydantic_to_dict(token_data),
         setting.SECRET_KEY,
         algorithm=setting.ALGORITHM,
     )
