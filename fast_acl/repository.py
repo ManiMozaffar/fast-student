@@ -50,6 +50,18 @@ class ClassroomRepository:
         ]
         return relations
 
+    def is_student_in_classroom(
+        self, classroom_id: ClassRoomId, student_id: StudentId
+    ) -> bool:
+        relation_generator = (
+            relation
+            for relation in self.db.read_relations()
+            if relation.classroom_id == classroom_id
+            and relation.student_id == student_id  # noqa
+        )
+        result = next(relation_generator, None)
+        return True if result else False
+
 
 class UserRepository:
     def __init__(self, db: Type[Database]) -> None:
@@ -58,6 +70,15 @@ class UserRepository:
     def create_user(self, username: str, password: str, role: UserRoles) -> models.User:
         user = models.User(username=username, password=password, role=role)
         self.db.add_user(user)
+        return user
+
+    def get_user(self, user_id: UserId) -> models.User:
+        user = next(
+            (user for user in self.db.read_users() if user.id == user_id),
+            None,
+        )
+        if not user:
+            raise NotFoundError(obj_id=user_id)
         return user
 
 
@@ -85,10 +106,13 @@ class StudentRepository:
         self,
         classroom_id: ClassRoomId,
     ) -> list[models.Student]:
+        student_ids = [
+            relation.student_id
+            for relation in self.db.read_relations()
+            if relation.classroom_id == classroom_id and relation.student_id
+        ]
         students = [
-            student
-            for student in self.db.read_students()
-            if student.classroom_id == classroom_id
+            student for student in self.db.read_students() if student.id in student_ids
         ]
         return students
 
@@ -98,10 +122,15 @@ class StudentRepository:
         classroom_id: ClassRoomId,
         user_id: UserId,
     ) -> models.Student:
-        student = models.Student(
-            user_id=user_id, classroom_id=classroom_id, grade=grade
-        )
+        student = models.Student(user_id=user_id, grade=grade)
         self.db.add_student(student)
+        self.db.add_relation(
+            models.ClassRoomRelation(
+                classroom_id=classroom_id,
+                student_id=student.id,
+                expires_at=datetime.now() + timedelta(days=365),
+            )
+        )
         return student
 
     def update_student(
