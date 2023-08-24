@@ -6,11 +6,11 @@ from fast_acl.repository import ClassroomRepository
 from fast_acl.types import ClassRoomId, StudentId, UserId
 
 
-async def is_allowed(**_):
+async def is_allowed(*_, **__):
     return True
 
 
-async def is_not_allowed(**_):
+async def is_not_allowed(*_, **__):
     raise NotAuthorizedError
 
 
