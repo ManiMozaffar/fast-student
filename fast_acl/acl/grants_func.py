@@ -15,11 +15,11 @@ async def is_not_allowed(*_, **__):
 
 
 async def related_classroom(
-        database: Type[Database],
-        asked_id: UserId,
-        ask_for_id: UserId,
-        classroom_id: ClassRoomId,
-        **_
+    database: Type[Database],
+    asked_id: UserId,
+    ask_for_id: UserId,
+    classroom_id: ClassRoomId,
+    **_
 ):
     repo = ClassroomRepository(database)
     relations = repo.filter_classroom_relations(classroom_id)
